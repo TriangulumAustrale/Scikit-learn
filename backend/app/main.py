@@ -60,9 +60,10 @@ class Prediction(BaseModel):
 @app.post("/predict", response_model=Prediction)
 def predict(features: HouseFeatures):
     row = pd.DataFrame([features.model_dump()], columns=FEATURE_NAMES)
-    value = float(model.predict(row)[0])
+    # Round once, so the dollar figure is always derivable from the value shown.
+    value = round(float(model.predict(row)[0]), 4)
     return Prediction(
-        predicted_value=round(value, 4),
+        predicted_value=value,
         # The target is median house value in $100,000s.
         predicted_value_usd=round(value * 100_000),
         top_features=TOP_FEATURES,
