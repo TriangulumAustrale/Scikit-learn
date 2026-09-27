@@ -5,11 +5,13 @@ loaded once at import time, so predictions never touch disk.
 """
 
 import json
+import os
 from pathlib import Path
 
 import joblib
 import pandas as pd
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 MODEL_DIR = Path(__file__).resolve().parent.parent / "model"
@@ -31,6 +33,23 @@ TOP_FEATURES = [
 ]
 
 app = FastAPI(title="House Price Predictor")
+
+# The frontend is served from a different origin (Vite in dev, S3 once
+# deployed), so the browser needs CORS to reach /predict at all.
+ALLOWED_ORIGINS = [
+    o.strip()
+    for o in os.getenv(
+        "ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+    ).split(",")
+    if o.strip()
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
 
 
 class HouseFeatures(BaseModel):
