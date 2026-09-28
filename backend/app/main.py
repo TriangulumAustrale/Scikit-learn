@@ -12,6 +12,7 @@ import joblib
 import pandas as pd
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from mangum import Mangum
 from pydantic import BaseModel, Field
 
 MODEL_DIR = Path(__file__).resolve().parent.parent / "model"
@@ -92,3 +93,8 @@ def predict(features: HouseFeatures):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# Lambda entry point. Mangum translates API Gateway events into ASGI calls,
+# so the same app object serves uvicorn locally and Lambda in production.
+handler = Mangum(app)
