@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 
 import joblib
-import pandas as pd
+import numpy as np
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
@@ -22,8 +22,9 @@ model = joblib.load(MODEL_DIR / "model.joblib")
 with open(MODEL_DIR / "feature_importances.json") as f:
     FEATURE_IMPORTANCES = json.load(f)
 
-# Column order the model was trained on; a DataFrame in this order keeps
-# scikit-learn from warning about mismatched feature names.
+# Column order the model was trained on. Rows are built as plain numpy arrays
+# in this order: pandas would cost ~34 MB in the Lambda package to format a
+# single row, which the 250 MB limit leaves no room for.
 FEATURE_NAMES = list(FEATURE_IMPORTANCES)
 
 TOP_FEATURES = [
@@ -79,7 +80,8 @@ class Prediction(BaseModel):
 
 @app.post("/predict", response_model=Prediction)
 def predict(features: HouseFeatures):
-    row = pd.DataFrame([features.model_dump()], columns=FEATURE_NAMES)
+    values = features.model_dump()
+    row = np.array([[values[name] for name in FEATURE_NAMES]], dtype=float)
     # Round once, so the dollar figure is always derivable from the value shown.
     value = round(float(model.predict(row)[0]), 4)
     return Prediction(

@@ -24,9 +24,12 @@ def main():
     )
 
     model = RandomForestRegressor(n_estimators=100, random_state=42)
-    model.fit(X_train, y_train)
+    # Fit on plain arrays. The API has no pandas (it does not fit in the Lambda
+    # package), so predicting on arrays would otherwise warn about the missing
+    # feature names on every call. Column order is recorded below instead.
+    model.fit(X_train.values, y_train)
 
-    preds = model.predict(X_test)
+    preds = model.predict(X_test.values)
     print("R2:", r2_score(y_test, preds))
     print("MAE:", mean_absolute_error(y_test, preds))
 
